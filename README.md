@@ -22,7 +22,7 @@
 
 
 ### Event Storming 결과
-![image](https://user-images.githubusercontent.com/86760528/132222926-81ba990d-550a-48b9-a961-1cfa44d6ec60.png)
+![image](https://user-images.githubusercontent.com/86760528/132283508-4ca438a8-0738-4ea0-be15-f48d22411d53.png)
 
 
 ### 헥사고날 아키텍처 다이어그램 도출
