@@ -917,6 +917,6 @@ kubectl get cm dbpass -o yaml
 
 ![liveness2](https://user-images.githubusercontent.com/86760528/132368120-3e8f0623-6ae6-45b7-abad-d9a2484dea4d.PNG)
 
-* 재배포(Deploy) 후 Pod Restart 확인
-* 
+* Restart 원인 Liveness Probe 확인
+
 ![liveness3](https://user-images.githubusercontent.com/86760528/132368158-34a2dbe5-e822-42bb-b6e6-424dc12f347e.PNG)
