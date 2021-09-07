@@ -433,56 +433,6 @@ DDD 적용 후 REST API의 테스트를 통하여 정상적으로 동작하는 �
 
 ![image](https://user-images.githubusercontent.com/86760622/130422106-b95d5fcf-92c8-438e-abdd-27250e32464c.png)
 
-
-
-
-# GateWay 적용
-API GateWay를 통하여 마이크로 서비스들의 집입점을 통일할 수 있다. 다음과 같이 GateWay를 적용하였다.
-
-```yaml
-server:
-  port: 8080
-
----
-
-spring:
-  profiles: default
-  cloud:
-    gateway:
-      routes:
-        - id: Reservation
-          uri: http://localhost:8081
-          predicates:
-            - Path=/reservations/** 
-        - id: Pay
-          uri: http://localhost:8082
-          predicates:
-            - Path=/pays/** 
-        - id: Ticket
-          uri: http://localhost:8083
-          predicates:
-            - Path=/tickets/** 
-        - id: MyReservation
-          uri: http://localhost:8084
-          predicates:
-            - Path= /myReservations/**
-      globalcors:
-        corsConfigurations:
-          '[/**]':
-            allowedOrigins:
-              - "*"
-            allowedMethods:
-              - "*"
-            allowedHeaders:
-              - "*"
-            allowCredentials: true
-```
-8080 port로 Reservation 서비스 정상 호출
-
-![image](https://user-images.githubusercontent.com/86760622/130422248-3f5dc3f6-7073-4b18-8ae5-50429dd94ab2.png)
-
-
-
 # CQRS/saga/correlation
 Materialized View를 구현하여, 타 마이크로서비스의 데이터 원본에 접근없이(Composite 서비스나 조인SQL 등 없이)도 내 서비스의 화면 구성과 잦은 조회가 가능하게 구현해 두었다. 본 프로젝트에서 View 역할은 MyPages 서비스가 수행한다.
 
@@ -511,418 +461,343 @@ Materialized View를 구현하여, 타 마이크로서비스의 데이터 원본
 
 위 결과로 서로 다른 마이크로 서비스 간에 트랜잭션이 묶여 있음을 알 수 있다.
 
-# 폴리글랏
-Order 서비스의 DB와 MyPage의 DB를 다른 DB를 사용하여 폴리글랏을 만족시키고 있다.
+## CheckPoint4. Req/Resp
+비기능적 요구사항 [고객이 예약시에 결재가 되어야 한다.] 를 만족시키기 위해
+예약 --> 결제 처리 간의 처리방식을 Req/Resp 로 구현하였으며, RestRepository를 이용하였다.
 
+* reservation -> payment 신규 생성 Req/Resp 방식 호출부
+
+![image](https://user-images.githubusercontent.com/86760528/132376430-315c6468-ba2e-4cc8-8deb-d6c2bd72db7e.png)
+
+* reservation -> PaymentService.java / RESTful 함수 FeignClient 정의부
+
+![image](https://user-images.githubusercontent.com/86760528/132376608-4b086ca2-994c-4024-a3d1-5034705a42c0.png)
+
+## CheckPoint5. Gateway
+API Gateway를 적용하여, MicroService의 진입점을 단일화 하였다.
+* Default Profile : 8080 Port, http://URL:8080/{context}
+* Docker Profile : 8080 Port, http://URL:8080/{context}
 ```
+server:
+  port: 8080
+
+---
+
+spring:
+  profiles: default
+  cloud:
+    gateway:
+      routes:
+        - id: room
+          uri: http://localhost:8081
+          predicates:
+            - Path=/rooms/** 
+        - id: reservation
+          uri: http://localhost:8082
+          predicates:
+            - Path=/reservations/** 
+        - id: pay
+          uri: http://localhost:8083
+          predicates:
+            - Path=/payments/** 
+        - id: Viewer
+          uri: http://localhost:8084
+          predicates:
+            - Path= /reservationviews/**
+      globalcors:
+        corsConfigurations:
+          '[/**]':
+            allowedOrigins:
+              - "*"
+            allowedMethods:
+              - "*"
+            allowedHeaders:
+              - "*"
+            allowCredentials: true
+
+
+---
+
 spring:
   profiles: docker
-  datasource:
-    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
-    url: jdbc:sqlserver://user03.database.windows.net:1433;database=yanolja;encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.database.windows.net;loginTimeout=30;
-    username: rhdkfma77@user03
-    password: srhkjrm7614!
-  jpa:
-    properties:
-      hibernate:
-        show_sql: true
-        format_sql: true
-        # dialect: org.hibernate.dialect.MySQL57Dialect
-    hibernate:
-      ddl-auto: update
-      generate-ddl: true  
+  cloud:
+    gateway:
+      routes:
+        - id: room
+          uri: http://room:8080
+          predicates:
+            - Path=/rooms/** 
+        - id: reservation
+          uri: http://reservation:8080
+          predicates:
+            - Path=/reservations/** 
+        - id: pay
+          uri: http://pay:8080
+          predicates:
+            - Path=/payments/** 
+        - id: Viewer
+          uri: http://Viewer:8080
+          predicates:
+            - Path= /reservationviews/**
+      globalcors:
+        corsConfigurations:
+          '[/**]':
+            allowedOrigins:
+              - "*"
+            allowedMethods:
+              - "*"
+            allowedHeaders:
+              - "*"
+            allowCredentials: true
+
+server:
+  port: 8080
 ```
 
-**Order의 pom.xml DB 설정 코드**
+## CheckPoint6. Polyglot
+타 서비스와 별개로 Viewer 서비스는 SQLDB를 사용하였다. 그 외 서비스는 (h2 사용)
 
-![증빙5](https://github.com/bigot93/forthcafe/blob/main/images/db_conf1.png)
+* Viewer 의 application.yml
 
-**MyPage의 pom.xml DB 설정 코드**
+![image](https://user-images.githubusercontent.com/86760528/132373895-c64f4a03-e351-4d97-b184-4baed74ad850.png)
 
-![증빙6](https://github.com/bigot93/forthcafe/blob/main/images/db_conf2.png)
+* viewer의 pom.xml DB 설정 코드
 
-# 동기식 호출 과 Fallback 처리
+![image](https://user-images.githubusercontent.com/86760528/132375397-6cbc6e52-a07b-4303-9e23-c30f9e092f5b.png)
 
-분석단계에서의 조건 중 하나로 결재(Pay)와 배송(Delivery) 간의 호출은 동기식 일관성을 유지하는 트랜잭션으로 처리하기로 하였다. 호출 프로토콜은 Rest Repository에 의해 노출되어있는 REST 서비스를 FeignClient를 이용하여 호출하도록 한다.
+* SQLDB 조회 결과
 
-**Pay 서비스 내 external.DeliveryService**
-```java
-package forthcafe.external;
+![image](https://user-images.githubusercontent.com/86760528/132375082-a98df9c1-4b7d-4571-a6a7-3abd2c426d23.png)
 
-import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
+![image](https://user-images.githubusercontent.com/86760528/132375130-ce901aae-8387-4b20-8ff2-bbf081dd80e1.png)
 
-import java.util.Date;
-
-@FeignClient(name="Delivery", url="${api.url.delivery}") 
-public interface DeliveryService {
-
-    @RequestMapping(method = RequestMethod.POST, path = "/deliveries", consumes = "application/json")
-    public void delivery(@RequestBody Delivery delivery);
-
-}
-```
-
-**동작 확인**
-
-잠시 Delivery 서비스 중지
-![증빙7](https://github.com/bigot93/forthcafe/blob/main/images/%EB%8F%99%EA%B8%B0%ED%99%941.png)
-
-주문 취소 요청시 Pay 서비스 변화 없음
-![증빙8](https://github.com/bigot93/forthcafe/blob/main/images/%EB%8F%99%EA%B8%B0%ED%99%942.png)
-
-Delivery 서비스 재기동 후 주문취소
-![증빙9](https://github.com/bigot93/forthcafe/blob/main/images/%EB%8F%99%EA%B8%B0%ED%99%943.png)
-
-Pay 서비스 상태를 보면 2번 주문 정상 취소 처리됨
-![증빙9](https://github.com/bigot93/forthcafe/blob/main/images/%EB%8F%99%EA%B8%B0%ED%99%944.png)
-
-Fallback 설정
-![image](https://user-images.githubusercontent.com/5147735/109755775-f9b7ae80-7c29-11eb-8add-bdb295dc94e1.png)
-![image](https://user-images.githubusercontent.com/5147735/109755797-04724380-7c2a-11eb-8fcd-1c5135000ee5.png)
-
-
-Fallback 결과(Pay service 종료 후 Order 추가 시)
-![image](https://user-images.githubusercontent.com/5147735/109755716-dab91c80-7c29-11eb-9099-ba585115a2a6.png)
 
 # 운영
 
-## CI/CD
-* 카프카 설치
+## CheckPoint7. Deploy/ Pipeline
+* git에서 소스 가져오기
 ```
-- 헬름 설치
-참고 : http://msaschool.io/operation/implementation/implementation-seven/
-curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 > get_helm.sh
-chmod 700 get_helm.sh
-./get_helm.sh
-
-- Azure Only
-kubectl patch storageclass managed -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
-
-- 카프카 설치
-kubectl --namespace kube-system create sa tiller      # helm 의 설치관리자를 위한 시스템 사용자 생성
-kubectl create clusterrolebinding tiller --clusterrole cluster-admin --serviceaccount=kube-system:tiller
-
-helm repo add incubator https://charts.helm.sh/incubator
-helm repo update
-kubectl create ns kafka
-helm install my-kafka --namespace kafka incubator/kafka
-
-kubectl get po -n kafka -o wide
-```
-* Topic 생성
-```
-kubectl -n kafka exec my-kafka-0 -- /usr/bin/kafka-topics --zookeeper my-kafka-zookeeper:2181 --topic forthcafe --create --partitions 1 --replication-factor 1
-```
-* Topic 확인
-```
-kubectl -n kafka exec my-kafka-0 -- /usr/bin/kafka-topics --zookeeper my-kafka-zookeeper:2181 --list
-```
-* 이벤트 발행하기
-```
-kubectl -n kafka exec -ti my-kafka-0 -- /usr/bin/kafka-console-producer --broker-list my-kafka:9092 --topic forthcafe
-```
-* 이벤트 수신하기
-```
-kubectl -n kafka exec -ti my-kafka-0 -- /usr/bin/kafka-console-consumer --bootstrap-server my-kafka:9092 --topic forthcafe --from-beginning
+git clone https://github.com/goarum/YANOLJA.git
 ```
 
-* 소스 가져오기
+* Maven Packaging / Docker Build, Push
 ```
-git clone https://github.com/bigot93/forthcafe.git
-```
+cd /gateway
+mvn package         # Maven Packaging
+docker build -t user0303.azurecr.io/gateway:latest .     # Docker Build
+docker push user0303.azurecr.io/gateway:latest           # Docker Push to Azure Container Registry
 
-## ConfigMap
-* deployment.yml 파일에 설정
-```
-env:
-   - name: SYS_MODE
-     valueFrom:
-       configMapKeyRef:
-         name: systemmode
-         key: sysmode
-```
-* Configmap 생성, 정보 확인
-```
-kubectl create configmap systemmode --from-literal=sysmode=PRODUCT
-kubectl get configmap systemmode -o yaml
-```
-![image](https://user-images.githubusercontent.com/5147735/109768817-bb77ba80-7c3c-11eb-8856-7fca5213f5b1.png)
+cd ../pay
+mvn package         # Maven Packaging
+docker build -t user0303.azurecr.io/pay:latest .     # Docker Build
+docker push user0303.azurecr.io/pay:latest           # Docker Push to Azure Container Registry
 
-* order 1건 추가후 로그 확인
-```
-kubectl logs {pod ID}
-```
-![image](https://user-images.githubusercontent.com/5147735/109760887-dc3b1280-7c32-11eb-8284-f4544d7b72b0.png)
+cd ../reservation
+mvn package         # Maven Packaging
+docker build -t user0303.azurecr.io/reservation:latest .     # Docker Build
+docker push user0303.azurecr.io/reservation:latest           # Docker Push to Azure Container Registry
 
+cd ../room
+mvn package         # Maven Packaging
+docker build -t user0303.azurecr.io/room:latest .     # Docker Build
+docker push user0303.azurecr.io/room:latest           # Docker Push to Azure Container Registry
 
-## Deploy / Pipeline
+cd ../Viewer
+mvn package         # Maven Packaging
+docker build -t user0303.azurecr.io/viewer:latest .     # Docker Build
+docker push user0303.azurecr.io/viewer:latest           # Docker Push to Azure Container Registry
 
-* build 하기
-```
-cd /forthcafe
-
-cd Order
-mvn package 
-
-cd ..
-cd Pay
-mvn package
-
-cd ..
-cd Delivery
-mvn package
-
-cd ..
-cd gateway
-mvn package
-
-cd ..
-cd MyPage
-mvn package
 ```
 
-* Azure 레지스트리에 도커 이미지 push, deploy, 서비스생성(방법1 : yml파일 이용한 deploy)
+* Yaml 파일을 이용한 Deployment
 ```
-cd .. 
-cd Order
-az acr build --registry skteam01 --image skteam01.azurecr.io/order:v1 .
-kubectl apply -f kubernetes/deployment.yml 
-kubectl expose deploy order --type=ClusterIP --port=8080
-
-cd .. 
-cd Pay
-az acr build --registry skteam01 --image skteam01.azurecr.io/pay:v1 .
-kubectl apply -f kubernetes/deployment.yml 
-kubectl expose deploy pay --type=ClusterIP --port=8080
-
-cd .. 
-cd Delivery
-az acr build --registry skteam01 --image skteam01.azurecr.io/delivery:v1 .
-kubectl apply -f kubernetes/deployment.yml 
-kubectl expose deploy delivery --type=ClusterIP --port=8080
-
-
-cd .. 
-cd MyPage
-az acr build --registry skteam01 --image skteam01.azurecr.io/mypage:v1 .
-kubectl apply -f kubernetes/deployment.yml 
-kubectl expose deploy mypage --type=ClusterIP --port=8080
-
-cd .. 
-cd gateway
-az acr build --registry skteam01 --image skteam01.azurecr.io/gateway:v1 .
-kubectl create deploy gateway --image=skteam01.azurecr.io/gateway:v1
-kubectl expose deploy gateway --type=LoadBalancer --port=8080
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pay
+  labels:
+    app: pay
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pay
+  template:
+    metadata:
+      labels:
+        app: pay
+    spec:
+      containers:
+        - name: pay
+          image: user0303.azurecr.io/pay:latest
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: '/actuator/health'
+              port: 8080
+            initialDelaySeconds: 10
+            timeoutSeconds: 2
+            periodSeconds: 5
+            failureThreshold: 10
+          livenessProbe:
+            httpGet:
+              path: '/actuator/health'
+              port: 8080
+            initialDelaySeconds: 120
+            timeoutSeconds: 2
+            periodSeconds: 5
+            failureThreshold: 5
 ```
-
-
-* Azure 레지스트리에 도커 이미지 push, deploy, 서비스생성(방법2)
+* Deploy 수행
 ```
-cd ..
-cd Order
-az acr build --registry skteam01 --image skteam01.azurecr.io/order:v1 .
-kubectl create deploy order --image=skteam01.azurecr.io/order:v1
-kubectl expose deploy order --type=ClusterIP --port=8080
+cd /gateway/kubernates
+kubectl apply -f deployment.yaml
+kubectl apply -f service.yaml
 
-cd .. 
-cd Pay
-az acr build --registry skteam01 --image skteam01.azurecr.io/pay:v1 .
-kubectl create deploy pay --image=skteam01.azurecr.io/pay:v1
-kubectl expose deploy pay --type=ClusterIP --port=8080
+cd ../WTB/kubernates
+kubectl apply -f deployment.yaml
+kubectl apply -f service.yaml
 
+cd ../WTS/kubernates
+kubectl apply -f deployment.yaml
+kubectl apply -f service.yaml
 
-cd .. 
-cd Delivery
-az acr build --registry skteam01 --image skteam01.azurecr.io/delivery:v1 .
-kubectl create deploy delivery --image=skteam01.azurecr.io/delivery:v1
-kubectl expose deploy delivery --type=ClusterIP --port=8080
+cd ../Pay/kubernates
+kubectl apply -f deployment.yaml
+kubectl apply -f service.yaml
 
-
-cd .. 
-cd gateway
-az acr build --registry skteam01 --image skteam01.azurecr.io/gateway:v1 .
-kubectl create deploy gateway --image=skteam01.azurecr.io/gateway:v1
-kubectl expose deploy gateway --type=LoadBalancer --port=8080
-
-cd .. 
-cd MyPage
-az acr build --registry skteam01 --image skteam01.azurecr.io/mypage:v1 .
-kubectl create deploy mypage --image=skteam01.azurecr.io/mypage:v1
-kubectl expose deploy mypage --type=ClusterIP --port=8080
-
-kubectl logs {pod명}
+cd ../Viewer/kubernates
+kubectl apply -f deployment.yaml
+kubectl apply -f service.yaml
 ```
-* Service, Pod, Deploy 상태 확인
-![image](https://user-images.githubusercontent.com/5147735/109769165-2de89a80-7c3d-11eb-8472-2281468fb771.png)
+* Deploy 완료
 
+![image](https://user-images.githubusercontent.com/86760528/132373163-4303b7a1-d7aa-460c-b6d8-abd97be68b0e.png)
 
-* deployment.yml  참고
-```
-1. image 설정
-2. env 설정 (config Map) 
-3. readiness 설정 (무정지 배포)
-4. liveness 설정 (self-healing)
-5. resource 설정 (autoscaling)
-```
-
-![image](https://user-images.githubusercontent.com/5147735/109643506-a8f77580-7b97-11eb-926b-e6c922aa2d1b.png)
-
-## 서킷 브레이킹
+## CheckPoint8. Circuit Breaker
 * 서킷 브레이킹 프레임워크의 선택: Spring FeignClient + Hystrix 옵션을 사용하여 구현함
-* Order -> Pay 와의 Req/Res 연결에서 요청이 과도한 경우 CirCuit Breaker 통한 격리
-* Hystrix 를 설정: 요청처리 쓰레드에서 처리시간이 610 밀리가 넘어서기 시작하여 어느정도 유지되면 CB 회로가 닫히도록 (요청을 빠르게 실패처리, 차단) 설정
+* reservation -> Pay 와의 Req/Res 연결에서 요청이 과도한 경우 CirCuit Breaker 통한 격리
+* Hystrix 를 설정: 요청처리 쓰레드에서 처리시간이 4000 밀리가 넘어서기 시작하여 어느정도 유지되면 CB 회로가 닫히도록 (요청을 빠르게 실패처리, 차단) 설정
+* 테스트를 수행하기 위해 아래와 같이 roomId 조건을 만족 할 때에 시간지연이 되도록 하였다.
 
+
+* Application.yml 설정
+
+![image](https://user-images.githubusercontent.com/86760528/132371447-2428a393-4160-4001-8bfe-57df390febb0.png)
+
+* Pay Microservice 내에 시간지연 설정부분
+
+![image](https://user-images.githubusercontent.com/86760528/132371559-371a7aa7-c813-4719-8076-29c13f52e318.png)
+
+* 구매요청 시 Pay_Failed 발생 화면
+  
+roomId==3 --> Pay_Failed
+
+![circuit](https://user-images.githubusercontent.com/86760528/132371869-af68928c-b9a1-48ac-9c9c-b3765a2e2708.PNG)
+
+roomId==4 --> Reserved
+
+![circuit2](https://user-images.githubusercontent.com/86760528/132372157-4909c08d-9bfc-41d5-888d-b75e014e72cd.PNG)
+
+## CheckPoint9. Autoscale (HPA)
+예약요청이 다수 발생할 경우 Autoscale을 이용하여 Pod Replica를 3개까지 확장하도록 하였다.
+테스트를 위하여 pod 확장의 조건은 부하 50%로 지정하였다.
+
+* hpa.yml
 ```
-// Order서비스 application.yml
-
-feign:
-  hystrix:
-    enabled: true
-
-hystrix:
-  command:
-    default:
-      execution.isolation.thread.timeoutInMilliseconds: 610
-```
-
-
-```
-// Pay 서비스 Pay.java
-
- @PostPersist
-    public void onPostPersist(){
-        Payed payed = new Payed();
-        BeanUtils.copyProperties(this, payed);
-        payed.setStatus("Pay");
-        payed.publishAfterCommit();
-
-        try {
-                 Thread.currentThread().sleep((long) (400 + Math.random() * 220));
-         } catch (InterruptedException e) {
-                 e.printStackTrace();
-         }
-```
-
-* /home/project/team/forthcafe/yaml/siege.yaml
-```
-apiVersion: v1
-kind: Pod
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
 metadata:
-  name: siege
+  name: reservation-hpa
 spec:
-  containers:
-  - name: siege
-    image: apexacme/siege-nginx
+  maxReplicas: 3
+  minReplicas: 1
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: reservation
+  targetCPUUtilizationPercentage: 50
 ```
+* hpa 정상 생성 확인
 
-* siege pod 생성
+![image](https://user-images.githubusercontent.com/86760528/132370248-a23f870f-bdeb-4d4f-bd92-72010527cce3.png)
+
+* siege 부하 테스트 command
 ```
-/home/project/team/forthcafe/yaml/kubectl apply -f siege.yaml
+siege -c100 -t60S -r10 --content-type "application/json" 'http://reservation:8080/reservations POST {"roomId":"1","price":"3000"}'
 ```
+* siege 부하 테스트 결과 및 부하 테스트 중 pod 확장 모니터링
 
-* 부하테스터 siege 툴을 통한 서킷 브레이커 동작 확인: 동시사용자 100명 60초 동안 실시
+![hpa](https://user-images.githubusercontent.com/86760528/132370438-b5fa38e4-30e5-4a08-8987-9959383e1cc3.PNG)
+
+
+* siege 부하 테스트 후 pod 상태조회
+
+![hpa2](https://user-images.githubusercontent.com/86760528/132370620-d6d9b90b-cd19-4385-b7c2-1ec7a52e01d0.PNG)
+
+## CheckPoint10. Zero-downtime deploy (Readiness Probe)
+reservation Microservice 내에 Readiness Probe를 설정, siege를 이용하여 부하를 준 후 image 버전 교체를 수행하여
+Availability를 확인한다.
+
+* 이미지 변경 전 버전 확인
+
+![readness1](https://user-images.githubusercontent.com/86760528/132368587-69076c17-ddc5-46ab-a74e-1d836a64f528.PNG)
+
+* 무정지 재배포를 위한 Readiness Probe 설정
+
+![image](https://user-images.githubusercontent.com/86760528/132368740-0e796f48-06df-4dcf-b0e9-4a7a2c3b072f.png)
+
+* siege 를 이용하여 -C1의 약한 부하를 가함
 ```
-kubectl exec -it pod/siege -c siege -- /bin/bash
-siege -c100 -t60S  -v --content-type "application/json" 'http://{EXTERNAL-IP}:8080/orders POST {"memuId":2, "quantity":1}'
-siege -c100 -t30S  -v --content-type "application/json" 'http://52.141.61.164:8080/orders POST {"memuId":2, "quantity":1}'
+siege -c1 -t180S -r100 --content-type "application/json" 'http://reservation:8080/reservations POST {"roomId":"1","price":"3000"}'
 ```
-![image](https://user-images.githubusercontent.com/5147735/109762408-dd207400-7c33-11eb-8464-325d781867ae.png)
-![image](https://user-images.githubusercontent.com/5147735/109762376-d1cd4880-7c33-11eb-87fb-b739aa2d6621.png)
-
-
-
-## 오토스케일 아웃
-* 앞서 서킷 브레이커(CB) 는 시스템을 안정되게 운영할 수 있게 해줬지만 사용자의 요청을 100% 받아들여주지 못했기 때문에 이에 대한 보완책으로 자동화된 확장 기능을 적용하고자 한다.
-
-* order 서비스 deployment.yml 설정
+* image 버전을 변경
 ```
- resources:
-            limits:
-              cpu: 500m
-            requests:
-              cpu: 200m
+kubectl set image deployment reservation reservation=user0303.azurecr.io/reservation:v2
 ```
-* 다시 배포해준다.
+* deploy 모니터링 수행
 ```
-/home/project/team/forthcafe/Order/mvn package
-az acr build --registry skteam01 --image skteam01.azurecr.io/order:v1 .
-kubectl apply -f kubernetes/deployment.yml 
-kubectl expose deploy order --type=ClusterIP --port=8080
+kubectl get deploy -l app=reservation -w
 ```
+![readness2](https://user-images.githubusercontent.com/86760528/132369035-41d48ae7-aead-4610-91bf-1bb59844cb23.PNG)
 
-* Order 서비스에 대한 replica 를 동적으로 늘려주도록 HPA 를 설정한다. 설정은 CPU 사용량이 15프로를 넘어서면 replica 를 10개까지 늘려준다
+* siege 부하 결과 확인 (100% Availability)
 
+![readness_seige](https://user-images.githubusercontent.com/86760528/132369085-51d04e45-06ca-4c42-95a5-4ba960a9b48c.PNG)
+
+* 이미지 정상 변경 확인 (describe pod)
+
+![readness3](https://user-images.githubusercontent.com/86760528/132369126-e2a48e1b-be7a-4168-ab6b-5283e4a8cb9c.PNG)
+
+## CheckPoint11. ConfigMap/Persistence Volume
+* 시스템별로 변경 가능성이 있는 설정들을 ConfigMap을 사용하여 관리
+* viewer에서 별도로 사용하는 SQLDB의 패스워드를 ConfigMap으로 처리
+
+* application.yml 파일에서 패스워드를 ConfigMap과 연결
+
+![configmap1](https://user-images.githubusercontent.com/86760528/132366832-03b613da-2176-4d9d-bcb1-9387671cbdf6.PNG)
+
+* ConfigMap 생성 및 확인
 ```
-kubectl autoscale deploy order --min=1 --max=10 --cpu-percent=15
+kubectl create configmap dbpass --from-literal=password=********
+kubectl get cm dbpass -o yaml
 ```
+![image](https://user-images.githubusercontent.com/86760528/132367461-64b1c7f1-d065-4241-a408-76100ee64f64.png)
 
-* /home/project/team/forthcafe/yaml/siege.yaml
-```
-apiVersion: v1
-kind: Pod
-metadata:
-  name: siege
-spec:
-  containers:
-  - name: siege
-    image: apexacme/siege-nginx
-```
+* Deployment.yml 에 ConfigMap 적용
 
-* siege pod 생성
-```
-/home/project/team/forthcafe/yaml/kubectl apply -f siege.yaml
-```
+![configmap2](https://user-images.githubusercontent.com/86760528/132367636-08518a93-dbd6-4b80-be21-c41a81c6b785.PNG)
 
-* siege를 활용해서 워크로드를 1000명, 1분간 걸어준다. (Cloud 내 siege pod에서 부하줄 것)
-```
-kubectl exec -it pod/siege -c siege -- /bin/bash
-siege -c1000 -t60S  -v --content-type "application/json" 'http://{EXTERNAL-IP}:8080/orders POST {"memuId":2, "quantity":1}'
-siege -c1000 -t60S  -v --content-type "application/json" 'http://52.141.61.164:8080/orders POST {"memuId":2, "quantity":1}'
-```
+## CheckPoint12. Self-healing (Liveness Probe)
+* Self-healing 확인을 위한 Liveness Probe 옵션 변경 (Port 변경)
 
-* 오토스케일이 어떻게 되고 있는지 모니터링을 걸어둔다
-```
-kubectl get deploy order -w
-```
-![image](https://user-images.githubusercontent.com/5147735/109771563-4c9c6080-7c40-11eb-9bf8-1efef17bedee.png)
-```
-kubectl get pod
-```
-![image](https://user-images.githubusercontent.com/5147735/109771259-f3ccc800-7c3f-11eb-8ebe-9ff4ab9c2242.png)
+![liveness1](https://user-images.githubusercontent.com/86760528/132368054-68fcdfa2-9115-4aed-9d50-330cf527e1f1.PNG)
 
+* 재배포(Deploy) 후 Pod Restart 확인
 
+![liveness2](https://user-images.githubusercontent.com/86760528/132368120-3e8f0623-6ae6-45b7-abad-d9a2484dea4d.PNG)
 
+* Restart 원인 Liveness Probe 확인
 
-## 무정지 재배포 (Readiness Probe)
-* 배포전
-
-![image](https://user-images.githubusercontent.com/5147735/109743733-89526280-7c14-11eb-93da-0ddd3cd18e22.png)
-
-* 배포중
-
-![image](https://user-images.githubusercontent.com/5147735/109744076-11386c80-7c15-11eb-849d-6cf4e2c72675.png)
-![image](https://user-images.githubusercontent.com/5147735/109744186-3a58fd00-7c15-11eb-8da3-f11b6194fc6b.png)
-
-* 배포후
-
-![image](https://user-images.githubusercontent.com/5147735/109744225-45139200-7c15-11eb-8efa-07ac40162ded.png)
-
-
-
-
-## Self-healing (Liveness Probe)
-* order 서비스 deployment.yml   livenessProbe 설정을 port 8089로 변경 후 배포 하여 liveness probe 가 동작함을 확인 
-```
-    livenessProbe:
-      httpGet:
-        path: '/actuator/health'
-        port: 8089
-      initialDelaySeconds: 5
-      periodSeconds: 5
-```
-
-![image](https://user-images.githubusercontent.com/5147735/109740864-4fcb2880-7c0f-11eb-86ad-2aabb0197881.png)
-![image](https://user-images.githubusercontent.com/5147735/109742082-c0734480-7c11-11eb-9a57-f6dd6961a6d2.png)
+![liveness3](https://user-images.githubusercontent.com/86760528/132368158-34a2dbe5-e822-42bb-b6e6-424dc12f347e.PNG)
