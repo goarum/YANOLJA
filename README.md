@@ -898,7 +898,7 @@ kubectl get deploy -l app=reservation -w
 ```
 ![readness2](https://user-images.githubusercontent.com/86760528/132369035-41d48ae7-aead-4610-91bf-1bb59844cb23.PNG)
 
-* deploy 모니터링 수행
+* siege 부하 결과 확인 (100% Availability)
 
 ![readness_seige](https://user-images.githubusercontent.com/86760528/132369085-51d04e45-06ca-4c42-95a5-4ba960a9b48c.PNG)
 
