@@ -8,7 +8,7 @@ import java.util.Date;
 @Entity
 @Table(name="Payment_table")
 public class Payment {
-    // Test.
+
     @Id
     @GeneratedValue(strategy=GenerationType.AUTO)
     private Long id;
