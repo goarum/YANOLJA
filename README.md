@@ -6,20 +6,17 @@
 # 설계
 ### 기능적 요구사항
 1. 숙박업체가 방을 등록한다.
-2. 고객이 방을 예약한다.
-3. 고객이 결제한다.
-4. 숙박업체에서 방을 제공하면 결제금액이 숙박업체에 지급된다.
-5. 나의 예약현황에서 예약현황 및 상태를 조회할 수 있다.
-6. 고객이 예약을 취소 할 수 있다.
-7. 고객이 예약을 취소하면 결제취소 및 환불 되어야 한다.
+2. 고객이 방을 예약 및 결제한다.
+3. 숙박업체에서 방을 제공하면 결제금액이 숙박업체에 지급된다.
+4. 나의 예약현황에서 예약현황 및 상태를 조회할 수 있다.
+5. 고객이 예약을 취소 할 수 있다.
+6. 고객이 예약을 취소하면 결제취소 및 환불 되어야 한다.
 
 ### 비기능적 요구사항
 1. 고객이 예약시에 결재가 되어야 한다.  → REQ/RES Sync 호출
-2. 숙박업체의 방등록은 고객예약시스템과 상광없이 가능해야한다 → 장애격리
-3. 결재가 과중되면 결재를 잠시 후에 하도록 유도한다 → Circuit breaker
-4. 고객이 예약상태를 예약내역조회에서 확인할 수 있어야 한다 → CQRS
+2. 결재가 과중되면 결재를 잠시 후에 하도록 유도한다 → Circuit breaker
+3. 고객이 예약상태를 예약내역조회에서 확인할 수 있어야 한다 → CQRS
    
-
 
 ### Event Storming 결과
 ![image](https://user-images.githubusercontent.com/86760528/132283508-4ca438a8-0738-4ea0-be15-f48d22411d53.png)
@@ -29,409 +26,36 @@
 ![image](https://user-images.githubusercontent.com/86760528/132265875-50b2f6a1-00f1-41fd-8e92-cfaf711f0584.png)
 
 # 구현
-분석/설계 단계에서 도출된 헥사고날 아키텍처에 따라, 구현한 각 서비스를 로컬에서 실행하는 방법은 아래와 같다. (각각의 포트넘버는 8080 ~ 8084이다)
-```
-cd gateway
-mvn spring-boot:run
+## 요구사항 충족여부 검증
+1. 숙박업체가 방을 등록한다.
 
-cd Reservation
-mvn spring-boot:run
+![image](https://user-images.githubusercontent.com/86760528/132423064-c4cb2be5-1fe4-48cf-9703-4f7a617f8d49.png)
 
-cd Pay
-mvn spring-boot:run
+2. 고객이 방을 예약 및 결제한다.
 
-cd Ticket
-mvn spring-boot:run
+![image](https://user-images.githubusercontent.com/86760528/132423162-8555190d-6de4-4864-a66b-61290679be86.png)
 
-cd MyReservation
-mvn spring-boot:run
-```
+3. 숙박업체에서 방을 제공하면 결제금액이 숙박업체에 지급된다.
 
-## DDD 의 적용
-msaez.io를 통해 구현한 Aggregate 단위로 Entity를 선언 후, 구현을 진행하였다.
-Entity Pattern과 Repository Pattern을 적용하기 위해 Spring Data REST의 RestRepository를 적용하였다.
+![image](https://user-images.githubusercontent.com/86760528/132423289-f7e17698-a4e9-4075-8934-bf6ec9f339cf.png)
 
-**Reservation 서비스의 Reservation.java**
-```java 
-package movie;
+   결재 log에서 돈이 지급되는것을 확인 가능.
 
-import javax.persistence.*;
-import org.springframework.beans.BeanUtils;
-import java.util.List;
-import java.util.Date;
+![image](https://user-images.githubusercontent.com/86760528/132423382-012c33bd-ba93-4595-acd3-f09f4047030f.png)
 
-@Entity
-@Table(name="Reservation_table")
-public class Reservation {
+5. 나의 예약현황에서 예약현황 및 상태를 조회할 수 있다.
 
-    @Id
-    @GeneratedValue(strategy=GenerationType.AUTO)
-    private Long id;
-    private String userid;
-    private String movie;
-    private String theater;
-    private String time;
-    private String seatNo;
-    private Integer price;
-    private String cardNo;
-    private String status;
+![image](https://user-images.githubusercontent.com/86760528/132423471-9e20ffae-3617-4603-b9b3-4e2549fcfc21.png)
 
-    @PostPersist
-    public void onPostPersist(){
-        Reserved reserved = new Reserved();
-        BeanUtils.copyProperties(this, reserved);
-        reserved.setStatus("Reserved");  // 예약상태 입력 by khos
-        reserved.publishAfterCommit();
+7. 고객이 예약을 취소 할 수 있다.
+   -예약된 결과를 취소
 
-        //Following code causes dependency to external APIs
-        // it is NOT A GOOD PRACTICE. instead, Event-Policy mapping is recommended.
+![image](https://user-images.githubusercontent.com/86760528/132423684-52f11f79-2f37-4b1a-aa8e-ef8783f41b31.png)
+![image](https://user-images.githubusercontent.com/86760528/132423715-cc3eba72-63af-4fe9-8556-83c779954b51.png)
 
-        movie.external.Pay pay = new movie.external.Pay();
-        // mappings goes here
-        BeanUtils.copyProperties(this, pay); // Pay 값 설정 by khos
-        pay.setReservationId(reserved.getId());
-        pay.setStatus("reserved"); // Pay 값 설정 by khos
-        ReservationApplication.applicationContext.getBean(movie.external.PayService.class)
-            .pay(pay);
+9. 고객이 예약을 취소하면 결제취소 및 환불 되어야 한다.
 
-    }
-    @PreRemove
-    public void onPreRemove(){
-        CanceledReservation canceledReservation = new CanceledReservation();
-        BeanUtils.copyProperties(this, canceledReservation);
-        canceledReservation.setStatus("Canceled Reservation");  // 예약상태 입력 by khos
-        canceledReservation.publishAfterCommit();
-
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-    public String getUserid() {
-        return userid;
-    }
-
-    public void setUserid(String userid) {
-        this.userid = userid;
-    }
-    public String getMovie() {
-        return movie;
-    }
-
-    public void setMovie(String movie) {
-        this.movie = movie;
-    }
-    public String getTheater() {
-        return theater;
-    }
-
-    public void setTheater(String theater) {
-        this.theater = theater;
-    }
-    public String getTime() {
-        return time;
-    }
-
-    public void setTime(String time) {
-        this.time = time;
-    }
-    public String getSeatNo() {
-        return seatNo;
-    }
-
-    public void setSeatNo(String seatNo) {
-        this.seatNo = seatNo;
-    }
-    public Integer getPrice() {
-        return price;
-    }
-
-    public void setPrice(Integer price) {
-        this.price = price;
-    }
-    public String getCardNo() {
-        return cardNo;
-    }
-
-    public void setCardNo(String cardNo) {
-        this.cardNo = cardNo;
-    }
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
-
-}
-
-```
-
-**Pay 서비스의 Pay.java**
-```java
-package movie;
-
-import javax.persistence.*;
-import org.springframework.beans.BeanUtils;
-import java.util.List;
-import java.util.Date;
-
-@Entity
-@Table(name="Pay_table")
-public class Pay {
-
-    @Id
-    @GeneratedValue(strategy=GenerationType.AUTO)
-    private Long id;
-    private Long reservationId;
-    private String userid;
-    private String movie;
-    private String theater;
-    private String time;
-    private Integer price;
-    private String cardNo;
-    private String status;
-    private String seatNo;
-
-    @PostPersist
-    public void onPostPersist(){
-        Payed payed = new Payed();
-        BeanUtils.copyProperties(this, payed);
-        payed.publishAfterCommit();
-
-    }
-
-    @PostUpdate
-    public void onPostUpdate(){
-        Payed payed = new Payed();
-        BeanUtils.copyProperties(this, payed);
-        payed.publishAfterCommit();
-    }
-
-    @PreRemove
-    public void onPreRemove(){
-        CanceledPay canceledPay = new CanceledPay();
-        BeanUtils.copyProperties(this, canceledPay);
-        canceledPay.setStatus("Canceled Payment");  // 상태 변경 by khos
-        canceledPay.publishAfterCommit();
-
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-    public Long getReservationId() {
-        return reservationId;
-    }
-
-    public void setReservationId(Long reservationId) {
-        this.reservationId = reservationId;
-    }
-    public String getUserid() {
-        return userid;
-    }
-
-    public void setUserid(String userid) {
-        this.userid = userid;
-    }
-    public String getMovie() {
-        return movie;
-    }
-
-    public void setMovie(String movie) {
-        this.movie = movie;
-    }
-    public String getTheater() {
-        return theater;
-    }
-
-    public void setTheater(String theater) {
-        this.theater = theater;
-    }
-    public String getTime() {
-        return time;
-    }
-
-    public void setTime(String time) {
-        this.time = time;
-    }
-    public Integer getPrice() {
-        return price;
-    }
-
-    public void setPrice(Integer price) {
-        this.price = price;
-    }
-    public String getCardNo() {
-        return cardNo;
-    }
-
-    public void setCardNo(String cardNo) {
-        this.cardNo = cardNo;
-    }
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
-    public String getSeatNo() {
-        return seatNo;
-    }
-
-    public void setSeatNo(String seatNo) {
-        this.seatNo = seatNo;
-    }
-
-
-}
-
-```
-
-**Ticket 서비스의 Ticket.java**
-```java
-package movie;
-
-import javax.persistence.*;
-import org.springframework.beans.BeanUtils;
-import java.util.List;
-import java.util.Date;
-
-@Entity
-@Table(name="Ticket_table")
-public class Ticket {
-
-    @Id
-    @GeneratedValue(strategy=GenerationType.AUTO)
-    private Long id;
-    private Long reservationId;
-    private Long payId;
-    private String userid;
-    private String movie;
-    private String theater;
-    private String time;
-    private String seatNo;
-    private String status;
-
-    @PostPersist
-    public void onPostPersist(){
-        Ticketed ticketed = new Ticketed();
-        BeanUtils.copyProperties(this, ticketed);
-        ticketed.publishAfterCommit();
-
-    }
-
-    @PostUpdate
-    public void onPostUpdate(){
-        Ticketed ticketed = new Ticketed();
-        BeanUtils.copyProperties(this, ticketed);
-        ticketed.publishAfterCommit();
-
-    }
-
-    @PreRemove
-    public void onPreRemove(){
-        CanceledTicket canceledTicket = new CanceledTicket();
-        BeanUtils.copyProperties(this, canceledTicket);
-        canceledTicket.publishAfterCommit();
-
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-    public Long getReservationId() {
-        return reservationId;
-    }
-
-    public void setReservationId(Long reservationId) {
-        this.reservationId = reservationId;
-    }
-    public Long getPayId() {
-        return payId;
-    }
-
-    public void setPayId(Long payId) {
-        this.payId = payId;
-    }
-    public String getUserid() {
-        return userid;
-    }
-
-    public void setUserid(String userid) {
-        this.userid = userid;
-    }
-    public String getMovie() {
-        return movie;
-    }
-
-    public void setMovie(String movie) {
-        this.movie = movie;
-    }
-    public String getTheater() {
-        return theater;
-    }
-
-    public void setTheater(String theater) {
-        this.theater = theater;
-    }
-    public String getTime() {
-        return time;
-    }
-
-    public void setTime(String time) {
-        this.time = time;
-    }
-    public String getSeatNo() {
-        return seatNo;
-    }
-
-    public void setSeatNo(String seatNo) {
-        this.seatNo = seatNo;
-    }
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
-
-}
-
-```
-
-DDD 적용 후 REST API의 테스트를 통하여 정상적으로 동작하는 것을 확인할 수 있었다.
-
-- Resevation 서비스 호출 결과 
-
-![image](https://user-images.githubusercontent.com/86760622/130421675-11836da1-dbe8-48b5-a241-90a1855b7a96.png)
-
-- Pay 서비스 호출 결과 
-
-![image](https://user-images.githubusercontent.com/86760622/130421919-df745446-0c4d-42f6-9792-fcb399062966.png)
-
-- Ticket 서비스 호출 결과
-
-![image](https://user-images.githubusercontent.com/86760622/130422013-a3e30485-5869-4716-84fe-a3a3b49c3277.png)
-
-- MyReservation 서비스 호출 결과 
-
-![image](https://user-images.githubusercontent.com/86760622/130422106-b95d5fcf-92c8-438e-abdd-27250e32464c.png)
+![image](https://user-images.githubusercontent.com/86760528/132423761-52be2856-3144-4df9-b005-64295ce3acbf.png)
 
 ## CheckPoint1. Saga
 이벤트 Pub / Sub 구현
