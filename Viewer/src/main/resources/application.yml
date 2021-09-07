@@ -60,8 +60,7 @@ spring:
     properties:
       hibernate:
         show_sql: true
-        format_sql: true
-        # dialect: org.hibernate.dialect.MySQL57Dialect
+        format_sql: true    
     hibernate:
       ddl-auto: update
       generate-ddl: true  
