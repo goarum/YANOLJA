@@ -752,6 +752,7 @@ kubectl logs {pod명}
 * Hystrix 를 설정: 요청처리 쓰레드에서 처리시간이 4000 밀리가 넘어서기 시작하여 어느정도 유지되면 CB 회로가 닫히도록 (요청을 빠르게 실패처리, 차단) 설정
 * 테스트를 수행하기 위해 아래와 같이 roomId 조건을 만족 할 때에 시간지연이 되도록 하였다.
 
+
 * Application.yml 설정
 
 ![image](https://user-images.githubusercontent.com/86760528/132371447-2428a393-4160-4001-8bfe-57df390febb0.png)
@@ -763,9 +764,11 @@ kubectl logs {pod명}
 * 구매요청 시 Pay_Failed 발생 화면
   
 roomId==3 --> Pay_Failed
+
 ![circuit](https://user-images.githubusercontent.com/86760528/132371869-af68928c-b9a1-48ac-9c9c-b3765a2e2708.PNG)
 
 roomId==4 --> Reserved
+
 ![circuit](https://user-images.githubusercontent.com/86760528/132371898-9e7c3cfb-359e-4e3e-82af-7af1ecaa5ab0.PNG)
 
 
