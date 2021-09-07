@@ -589,162 +589,106 @@ Fallback 결과(Pay service 종료 후 Order 추가 시)
 
 # 운영
 
-## CI/CD
-* 카프카 설치
+## CheckPoint7. Deploy/ Pipeline
+* git에서 소스 가져오기
 ```
-- 헬름 설치
-참고 : http://msaschool.io/operation/implementation/implementation-seven/
-curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 > get_helm.sh
-chmod 700 get_helm.sh
-./get_helm.sh
-
-- Azure Only
-kubectl patch storageclass managed -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
-
-- 카프카 설치
-kubectl --namespace kube-system create sa tiller      # helm 의 설치관리자를 위한 시스템 사용자 생성
-kubectl create clusterrolebinding tiller --clusterrole cluster-admin --serviceaccount=kube-system:tiller
-
-helm repo add incubator https://charts.helm.sh/incubator
-helm repo update
-kubectl create ns kafka
-helm install my-kafka --namespace kafka incubator/kafka
-
-kubectl get po -n kafka -o wide
-```
-* Topic 생성
-```
-kubectl -n kafka exec my-kafka-0 -- /usr/bin/kafka-topics --zookeeper my-kafka-zookeeper:2181 --topic forthcafe --create --partitions 1 --replication-factor 1
-```
-* Topic 확인
-```
-kubectl -n kafka exec my-kafka-0 -- /usr/bin/kafka-topics --zookeeper my-kafka-zookeeper:2181 --list
-```
-* 이벤트 발행하기
-```
-kubectl -n kafka exec -ti my-kafka-0 -- /usr/bin/kafka-console-producer --broker-list my-kafka:9092 --topic forthcafe
-```
-* 이벤트 수신하기
-```
-kubectl -n kafka exec -ti my-kafka-0 -- /usr/bin/kafka-console-consumer --bootstrap-server my-kafka:9092 --topic forthcafe --from-beginning
+git clone https://github.com/goarum/YANOLJA.git
 ```
 
-* 소스 가져오기
+* Maven Packaging / Docker Build, Push
 ```
-git clone https://github.com/bigot93/forthcafe.git
-```
+cd /gateway
+mvn package         # Maven Packaging
+docker build -t user0303.azurecr.io/gateway:latest .     # Docker Build
+docker push user0303.azurecr.io/gateway:latest           # Docker Push to Azure Container Registry
 
-## Deploy / Pipeline
+cd ../pay
+mvn package         # Maven Packaging
+docker build -t user0303.azurecr.io/pay:latest .     # Docker Build
+docker push user0303.azurecr.io/pay:latest           # Docker Push to Azure Container Registry
 
-* build 하기
-```
-cd /forthcafe
+cd ../reservation
+mvn package         # Maven Packaging
+docker build -t user0303.azurecr.io/reservation:latest .     # Docker Build
+docker push user0303.azurecr.io/reservation:latest           # Docker Push to Azure Container Registry
 
-cd Order
-mvn package 
+cd ../room
+mvn package         # Maven Packaging
+docker build -t user0303.azurecr.io/room:latest .     # Docker Build
+docker push user0303.azurecr.io/room:latest           # Docker Push to Azure Container Registry
 
-cd ..
-cd Pay
-mvn package
+cd ../Viewer
+mvn package         # Maven Packaging
+docker build -t user0303.azurecr.io/viewer:latest .     # Docker Build
+docker push user0303.azurecr.io/viewer:latest           # Docker Push to Azure Container Registry
 
-cd ..
-cd Delivery
-mvn package
-
-cd ..
-cd gateway
-mvn package
-
-cd ..
-cd MyPage
-mvn package
 ```
 
-* Azure 레지스트리에 도커 이미지 push, deploy, 서비스생성(방법1 : yml파일 이용한 deploy)
+* Yaml 파일을 이용한 Deployment
 ```
-cd .. 
-cd Order
-az acr build --registry skteam01 --image skteam01.azurecr.io/order:v1 .
-kubectl apply -f kubernetes/deployment.yml 
-kubectl expose deploy order --type=ClusterIP --port=8080
-
-cd .. 
-cd Pay
-az acr build --registry skteam01 --image skteam01.azurecr.io/pay:v1 .
-kubectl apply -f kubernetes/deployment.yml 
-kubectl expose deploy pay --type=ClusterIP --port=8080
-
-cd .. 
-cd Delivery
-az acr build --registry skteam01 --image skteam01.azurecr.io/delivery:v1 .
-kubectl apply -f kubernetes/deployment.yml 
-kubectl expose deploy delivery --type=ClusterIP --port=8080
-
-
-cd .. 
-cd MyPage
-az acr build --registry skteam01 --image skteam01.azurecr.io/mypage:v1 .
-kubectl apply -f kubernetes/deployment.yml 
-kubectl expose deploy mypage --type=ClusterIP --port=8080
-
-cd .. 
-cd gateway
-az acr build --registry skteam01 --image skteam01.azurecr.io/gateway:v1 .
-kubectl create deploy gateway --image=skteam01.azurecr.io/gateway:v1
-kubectl expose deploy gateway --type=LoadBalancer --port=8080
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pay
+  labels:
+    app: pay
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pay
+  template:
+    metadata:
+      labels:
+        app: pay
+    spec:
+      containers:
+        - name: pay
+          image: user0303.azurecr.io/pay:latest
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: '/actuator/health'
+              port: 8080
+            initialDelaySeconds: 10
+            timeoutSeconds: 2
+            periodSeconds: 5
+            failureThreshold: 10
+          livenessProbe:
+            httpGet:
+              path: '/actuator/health'
+              port: 8080
+            initialDelaySeconds: 120
+            timeoutSeconds: 2
+            periodSeconds: 5
+            failureThreshold: 5
 ```
-
-
-* Azure 레지스트리에 도커 이미지 push, deploy, 서비스생성(방법2)
+* Deploy 수행
 ```
-cd ..
-cd Order
-az acr build --registry skteam01 --image skteam01.azurecr.io/order:v1 .
-kubectl create deploy order --image=skteam01.azurecr.io/order:v1
-kubectl expose deploy order --type=ClusterIP --port=8080
+cd /gateway/kubernates
+kubectl apply -f deployment.yaml
+kubectl apply -f service.yaml
 
-cd .. 
-cd Pay
-az acr build --registry skteam01 --image skteam01.azurecr.io/pay:v1 .
-kubectl create deploy pay --image=skteam01.azurecr.io/pay:v1
-kubectl expose deploy pay --type=ClusterIP --port=8080
+cd ../WTB/kubernates
+kubectl apply -f deployment.yaml
+kubectl apply -f service.yaml
 
+cd ../WTS/kubernates
+kubectl apply -f deployment.yaml
+kubectl apply -f service.yaml
 
-cd .. 
-cd Delivery
-az acr build --registry skteam01 --image skteam01.azurecr.io/delivery:v1 .
-kubectl create deploy delivery --image=skteam01.azurecr.io/delivery:v1
-kubectl expose deploy delivery --type=ClusterIP --port=8080
+cd ../Pay/kubernates
+kubectl apply -f deployment.yaml
+kubectl apply -f service.yaml
 
-
-cd .. 
-cd gateway
-az acr build --registry skteam01 --image skteam01.azurecr.io/gateway:v1 .
-kubectl create deploy gateway --image=skteam01.azurecr.io/gateway:v1
-kubectl expose deploy gateway --type=LoadBalancer --port=8080
-
-cd .. 
-cd MyPage
-az acr build --registry skteam01 --image skteam01.azurecr.io/mypage:v1 .
-kubectl create deploy mypage --image=skteam01.azurecr.io/mypage:v1
-kubectl expose deploy mypage --type=ClusterIP --port=8080
-
-kubectl logs {pod명}
+cd ../Viewer/kubernates
+kubectl apply -f deployment.yaml
+kubectl apply -f service.yaml
 ```
-* Service, Pod, Deploy 상태 확인
-![image](https://user-images.githubusercontent.com/5147735/109769165-2de89a80-7c3d-11eb-8472-2281468fb771.png)
+* Deploy 완료
 
-
-* deployment.yml  참고
-```
-1. image 설정
-2. env 설정 (config Map) 
-3. readiness 설정 (무정지 배포)
-4. liveness 설정 (self-healing)
-5. resource 설정 (autoscaling)
-```
-
-![image](https://user-images.githubusercontent.com/5147735/109643506-a8f77580-7b97-11eb-926b-e6c922aa2d1b.png)
+![image](https://user-images.githubusercontent.com/86760528/132373163-4303b7a1-d7aa-460c-b6d8-abd97be68b0e.png)
 
 ## CheckPoint8. Circuit Breaker
 * 서킷 브레이킹 프레임워크의 선택: Spring FeignClient + Hystrix 옵션을 사용하여 구현함
