@@ -769,8 +769,7 @@ roomId==3 --> Pay_Failed
 
 roomId==4 --> Reserved
 
-![circuit](https://user-images.githubusercontent.com/86760528/132371898-9e7c3cfb-359e-4e3e-82af-7af1ecaa5ab0.PNG)
-
+![circuit2](https://user-images.githubusercontent.com/86760528/132372157-4909c08d-9bfc-41d5-888d-b75e014e72cd.PNG)
 
 ## CheckPoint9. Autoscale (HPA)
 예약요청이 다수 발생할 경우 Autoscale을 이용하여 Pod Replica를 3개까지 확장하도록 하였다.
