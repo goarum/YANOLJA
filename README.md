@@ -564,15 +564,15 @@ Fallback 결과(Pay service 종료 후 Order 추가 시)
 
 ![image](https://user-images.githubusercontent.com/86760528/132373895-c64f4a03-e351-4d97-b184-4baed74ad850.png)
 
+* viewer의 pom.xml DB 설정 코드
+
+![image](https://user-images.githubusercontent.com/86760528/132375397-6cbc6e52-a07b-4303-9e23-c30f9e092f5b.png)
+
 * SQLDB 조회 결과
 
 ![image](https://user-images.githubusercontent.com/86760528/132375082-a98df9c1-4b7d-4571-a6a7-3abd2c426d23.png)
 
 ![image](https://user-images.githubusercontent.com/86760528/132375130-ce901aae-8387-4b20-8ff2-bbf081dd80e1.png)
-
-* viewer의 pom.xml DB 설정 코드
-
-![증빙5](https://github.com/bigot93/forthcafe/blob/main/images/db_conf1.png)
 
 
 # 운영
