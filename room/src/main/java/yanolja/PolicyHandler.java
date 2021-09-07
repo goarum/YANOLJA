@@ -23,15 +23,15 @@ public class PolicyHandler{
 
             System.out.println("\n\n##### listener ReserveCheck : " + reserved.toJson() + "\n\n");
                 
-            Optional<Room> roomOptional = roomRepository.findById(reserved.getId());
+            //Optional<Room> roomOptional = roomRepository.findByRoomId(reserved.getRoomId());
 
-            if( roomOptional.isPresent()) {
-                 Room room = roomOptional.get();
+            //if( roomOptional.isPresent()) {
+            Room room = roomRepository.findByRoomId(reserved.getRoomId());
 
-                 room.setState("Reserved");
+            room.setState("Reserved");
                 
-                 roomRepository.save(room);
-                }
+            roomRepository.save(room);
+            //    }
 
 
         }catch (Exception e){
@@ -47,15 +47,15 @@ public class PolicyHandler{
 
             System.out.println("\n\n##### listener ReserveCheck : " + cancelReserved.toJson() + "\n\n");
                 
-            Optional<Room> roomOptional = roomRepository.findById(cancelReserved.getId());
+            //Optional<Room> roomOptional = roomRepository.findById(cancelReserved.getId());
 
-            if( roomOptional.isPresent()) {
-                 Room room = roomOptional.get();
+            //if( roomOptional.isPresent()) {
+            Room room = roomRepository.findByRoomId(cancelReserved.getRoomId());
             
-                 room.setState("공실");
+            room.setState("empty");
                 
-                 roomRepository.save(room);
-                }
+            roomRepository.save(room);
+            //    }
 
 
         }catch (Exception e){

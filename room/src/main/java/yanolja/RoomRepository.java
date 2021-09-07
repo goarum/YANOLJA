@@ -6,8 +6,7 @@ import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 @RepositoryRestResource(collectionResourceRel="rooms", path="rooms")
 public interface RoomRepository extends PagingAndSortingRepository<Room, Long>{
 
-    //Room findByWtbId(Long wtbId);
+    Room findByRoomId(int roomId);
 
-    //List<Ticket> findByReservationId(Long reservationId);
-
+    
 }

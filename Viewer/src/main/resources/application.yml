@@ -5,11 +5,20 @@ server:
 
 spring:
   profiles: default
+  datasource:
+    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+    url: jdbc:sqlserver://user03.database.windows.net:1433;database=yanolja;encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.database.windows.net;loginTimeout=30;
+    username: rhdkfma77@user03
+    password: srhkjrm7614!
   jpa:
     properties:
       hibernate:
         show_sql: true
         format_sql: true
+        # dialect: org.hibernate.dialect.MySQL57Dialect
+    hibernate:
+      ddl-auto: update
+      generate-ddl: true
   cloud:
     stream:
       kafka:
@@ -42,6 +51,20 @@ server:
 
 spring:
   profiles: docker
+  datasource:
+    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+    url: jdbc:sqlserver://user03.database.windows.net:1433;database=yanolja;encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.database.windows.net;loginTimeout=30;
+    username: rhdkfma77@user03
+    password: srhkjrm7614!
+  jpa:
+    properties:
+      hibernate:
+        show_sql: true
+        format_sql: true
+        # dialect: org.hibernate.dialect.MySQL57Dialect
+    hibernate:
+      ddl-auto: update
+      generate-ddl: true  
   cloud:
     stream:
       kafka:

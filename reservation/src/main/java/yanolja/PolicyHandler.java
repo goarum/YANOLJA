@@ -25,7 +25,7 @@ public class PolicyHandler{
 
             reservation.setId(roomAdded.getId());
             reservation.setRoomType(roomAdded.getRoomType());
-            reservation.setState("공실");
+            reservation.setState("empty");
             reservation.setPrice(roomAdded.getPrice());
             reservation.setRoomId(roomAdded.getRoomId());
             reservation.setPaymentId(roomAdded.getPaymentId());

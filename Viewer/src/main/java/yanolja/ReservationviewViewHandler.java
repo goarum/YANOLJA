@@ -28,7 +28,7 @@ public class ReservationviewViewHandler {
             // view 객체에 이벤트의 Value 를 set 함
             reservationview.setId(roomAdded.getId());
             reservationview.setRoomType(roomAdded.getRoomType());
-            reservationview.setState("공실");
+            reservationview.setState("empty");
             reservationview.setPrice(roomAdded.getPrice());
             reservationview.setRoomId(roomAdded.getRoomId());
             reservationview.setPaymentId(roomAdded.getPaymentId());
