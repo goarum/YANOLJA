@@ -634,28 +634,23 @@ kubectl -n kafka exec -ti my-kafka-0 -- /usr/bin/kafka-console-consumer --bootst
 git clone https://github.com/bigot93/forthcafe.git
 ```
 
-## ConfigMap
-* deployment.yml 파일에 설정
-```
-env:
-   - name: SYS_MODE
-     valueFrom:
-       configMapKeyRef:
-         name: systemmode
-         key: sysmode
-```
-* Configmap 생성, 정보 확인
-```
-kubectl create configmap systemmode --from-literal=sysmode=PRODUCT
-kubectl get configmap systemmode -o yaml
-```
-![image](https://user-images.githubusercontent.com/5147735/109768817-bb77ba80-7c3c-11eb-8856-7fca5213f5b1.png)
+## CheckPoint11. ConfigMap/Persistence Volume
+* 시스템별로 변경 가능성이 있는 설정들을 ConfigMap을 사용하여 관리
+* viewer에서 별도로 사용하는 MYSQL의 패스워드를 ConfigMap으로 처리
 
-* order 1건 추가후 로그 확인
+* application.yml 파일에서 패스워드를 ConfigMap과 연결
+![configmap1](https://user-images.githubusercontent.com/86760528/132366832-03b613da-2176-4d9d-bcb1-9387671cbdf6.PNG)
+
+* ConfigMap 생성 및 확인
 ```
-kubectl logs {pod ID}
+kubectl create configmap dbpass --from-literal=password=********
+kubectl get cm dbpass -o yaml
 ```
-![image](https://user-images.githubusercontent.com/5147735/109760887-dc3b1280-7c32-11eb-8284-f4544d7b72b0.png)
+![image](https://user-images.githubusercontent.com/86760528/132367461-64b1c7f1-d065-4241-a408-76100ee64f64.png)
+
+* Deployment.yml 에 ConfigMap 적용
+
+![configmap2](https://user-images.githubusercontent.com/86760528/132367636-08518a93-dbd6-4b80-be21-c41a81c6b785.PNG)
 
 
 ## Deploy / Pipeline
