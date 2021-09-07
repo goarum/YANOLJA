@@ -842,7 +842,7 @@ siege -c100 -t60S -r10 --content-type "application/json" 'http://reservation:808
 ![hpa](https://user-images.githubusercontent.com/86760528/132370438-b5fa38e4-30e5-4a08-8987-9959383e1cc3.PNG)
 
 
-* siege 부하 테스트 후 pod 상태 및 hpa 상태 조회
+* siege 부하 테스트 후 pod 상태조회
 
 ![hpa2](https://user-images.githubusercontent.com/86760528/132370620-d6d9b90b-cd19-4385-b7c2-1ec7a52e01d0.PNG)
 
