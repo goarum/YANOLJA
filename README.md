@@ -810,67 +810,41 @@ siege -c100 -t30S  -v --content-type "application/json" 'http://52.141.61.164:80
 
 
 
-## 오토스케일 아웃
-* 앞서 서킷 브레이커(CB) 는 시스템을 안정되게 운영할 수 있게 해줬지만 사용자의 요청을 100% 받아들여주지 못했기 때문에 이에 대한 보완책으로 자동화된 확장 기능을 적용하고자 한다.
+## CheckPoint9. Autoscale (HPA)
+예약요청이 다수 발생할 경우 Autoscale을 이용하여 Pod Replica를 3개까지 확장하도록 하였다.
+테스트를 위하여 pod 확장의 조건은 부하 50%로 지정하였다.
 
-* order 서비스 deployment.yml 설정
+* hpa.yml
 ```
- resources:
-            limits:
-              cpu: 500m
-            requests:
-              cpu: 200m
-```
-* 다시 배포해준다.
-```
-/home/project/team/forthcafe/Order/mvn package
-az acr build --registry skteam01 --image skteam01.azurecr.io/order:v1 .
-kubectl apply -f kubernetes/deployment.yml 
-kubectl expose deploy order --type=ClusterIP --port=8080
-```
-
-* Order 서비스에 대한 replica 를 동적으로 늘려주도록 HPA 를 설정한다. 설정은 CPU 사용량이 15프로를 넘어서면 replica 를 10개까지 늘려준다
-
-```
-kubectl autoscale deploy order --min=1 --max=10 --cpu-percent=15
-```
-
-* /home/project/team/forthcafe/yaml/siege.yaml
-```
-apiVersion: v1
-kind: Pod
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
 metadata:
-  name: siege
+  name: reservation-hpa
 spec:
-  containers:
-  - name: siege
-    image: apexacme/siege-nginx
+  maxReplicas: 3
+  minReplicas: 1
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: reservation
+  targetCPUUtilizationPercentage: 50
 ```
+* hpa 정상 생성 확인
 
-* siege pod 생성
-```
-/home/project/team/forthcafe/yaml/kubectl apply -f siege.yaml
-```
+![image](https://user-images.githubusercontent.com/86760528/132370248-a23f870f-bdeb-4d4f-bd92-72010527cce3.png)
 
-* siege를 활용해서 워크로드를 1000명, 1분간 걸어준다. (Cloud 내 siege pod에서 부하줄 것)
+* siege 부하 테스트 command
 ```
-kubectl exec -it pod/siege -c siege -- /bin/bash
-siege -c1000 -t60S  -v --content-type "application/json" 'http://{EXTERNAL-IP}:8080/orders POST {"memuId":2, "quantity":1}'
-siege -c1000 -t60S  -v --content-type "application/json" 'http://52.141.61.164:8080/orders POST {"memuId":2, "quantity":1}'
+siege -c100 -t60S -r10 --content-type "application/json" 'http://reservation:8080/reservations POST {"roomId":"1","price":"3000"}'
 ```
+* siege 부하 테스트 결과 및 부하 테스트 중 pod 확장 모니터링
 
-* 오토스케일이 어떻게 되고 있는지 모니터링을 걸어둔다
-```
-kubectl get deploy order -w
-```
-![image](https://user-images.githubusercontent.com/5147735/109771563-4c9c6080-7c40-11eb-9bf8-1efef17bedee.png)
-```
-kubectl get pod
-```
-![image](https://user-images.githubusercontent.com/5147735/109771259-f3ccc800-7c3f-11eb-8ebe-9ff4ab9c2242.png)
+![hpa](https://user-images.githubusercontent.com/86760528/132370438-b5fa38e4-30e5-4a08-8987-9959383e1cc3.PNG)
 
 
+* siege 부하 테스트 후 pod 상태 및 hpa 상태 조회
 
+![hpa2](https://user-images.githubusercontent.com/86760528/132370620-d6d9b90b-cd19-4385-b7c2-1ec7a52e01d0.PNG)
 
 ## CheckPoint10. Zero-downtime deploy (Readiness Probe)
 reservation Microservice 내에 Readiness Probe를 설정, siege를 이용하여 부하를 준 후 image 버전 교체를 수행하여
