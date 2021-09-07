@@ -17,6 +17,18 @@ public class Payment {
     private Integer price;
 
 
+    @PrePersist
+    public void onPrePresist(){
+        if(this.roomId == 3)
+        {
+            try {
+                Thread.sleep(30000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
     @PostPersist
     public void onPostPersist(){
     }

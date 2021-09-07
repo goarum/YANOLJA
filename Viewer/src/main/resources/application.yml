@@ -55,7 +55,7 @@ spring:
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
     url: jdbc:sqlserver://user03.database.windows.net:1433;database=yanolja;encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.database.windows.net;loginTimeout=30;
     username: rhdkfma77@user03
-    password: srhkjrm7614!
+    password: ${configmap}
   jpa:
     properties:
       hibernate:

@@ -514,6 +514,25 @@ Materialized View를 구현하여, 타 마이크로서비스의 데이터 원본
 # 폴리글랏
 Order 서비스의 DB와 MyPage의 DB를 다른 DB를 사용하여 폴리글랏을 만족시키고 있다.
 
+```
+spring:
+  profiles: docker
+  datasource:
+    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+    url: jdbc:sqlserver://user03.database.windows.net:1433;database=yanolja;encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.database.windows.net;loginTimeout=30;
+    username: rhdkfma77@user03
+    password: srhkjrm7614!
+  jpa:
+    properties:
+      hibernate:
+        show_sql: true
+        format_sql: true
+        # dialect: org.hibernate.dialect.MySQL57Dialect
+    hibernate:
+      ddl-auto: update
+      generate-ddl: true  
+```
+
 **Order의 pom.xml DB 설정 코드**
 
 ![증빙5](https://github.com/bigot93/forthcafe/blob/main/images/db_conf1.png)

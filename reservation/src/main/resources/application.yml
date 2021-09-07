@@ -67,3 +67,11 @@ spring:
         event-out:
           destination: yanolja
           contentType: application/json
+#Only When Test Circuit Breaker
+feign:
+  hystrix:
+    enabled: true
+hystrix:
+  command:
+    default:
+      execution.isolation.thread.timeoutInMilliseconds: 4000
