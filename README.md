@@ -433,56 +433,6 @@ DDD 적용 후 REST API의 테스트를 통하여 정상적으로 동작하는 �
 
 ![image](https://user-images.githubusercontent.com/86760622/130422106-b95d5fcf-92c8-438e-abdd-27250e32464c.png)
 
-
-
-
-# GateWay 적용
-API GateWay를 통하여 마이크로 서비스들의 집입점을 통일할 수 있다. 다음과 같이 GateWay를 적용하였다.
-
-```yaml
-server:
-  port: 8080
-
----
-
-spring:
-  profiles: default
-  cloud:
-    gateway:
-      routes:
-        - id: Reservation
-          uri: http://localhost:8081
-          predicates:
-            - Path=/reservations/** 
-        - id: Pay
-          uri: http://localhost:8082
-          predicates:
-            - Path=/pays/** 
-        - id: Ticket
-          uri: http://localhost:8083
-          predicates:
-            - Path=/tickets/** 
-        - id: MyReservation
-          uri: http://localhost:8084
-          predicates:
-            - Path= /myReservations/**
-      globalcors:
-        corsConfigurations:
-          '[/**]':
-            allowedOrigins:
-              - "*"
-            allowedMethods:
-              - "*"
-            allowedHeaders:
-              - "*"
-            allowCredentials: true
-```
-8080 port로 Reservation 서비스 정상 호출
-
-![image](https://user-images.githubusercontent.com/86760622/130422248-3f5dc3f6-7073-4b18-8ae5-50429dd94ab2.png)
-
-
-
 # CQRS/saga/correlation
 Materialized View를 구현하여, 타 마이크로서비스의 데이터 원본에 접근없이(Composite 서비스나 조인SQL 등 없이)도 내 서비스의 화면 구성과 잦은 조회가 가능하게 구현해 두었다. 본 프로젝트에서 View 역할은 MyPages 서비스가 수행한다.
 
@@ -556,6 +506,87 @@ Fallback 설정
 
 Fallback 결과(Pay service 종료 후 Order 추가 시)
 ![image](https://user-images.githubusercontent.com/5147735/109755716-dab91c80-7c29-11eb-9099-ba585115a2a6.png)
+
+## CheckPoint5. Gateway
+API Gateway를 적용하여, MicroService의 진입점을 단일화 하였다.
+* Default Profile : 8080 Port, http://URL:8080/{context}
+* Docker Profile : 8080 Port, http://URL:8080/{context}
+```
+server:
+  port: 8080
+
+---
+
+spring:
+  profiles: default
+  cloud:
+    gateway:
+      routes:
+        - id: room
+          uri: http://localhost:8081
+          predicates:
+            - Path=/rooms/** 
+        - id: reservation
+          uri: http://localhost:8082
+          predicates:
+            - Path=/reservations/** 
+        - id: pay
+          uri: http://localhost:8083
+          predicates:
+            - Path=/payments/** 
+        - id: Viewer
+          uri: http://localhost:8084
+          predicates:
+            - Path= /reservationviews/**
+      globalcors:
+        corsConfigurations:
+          '[/**]':
+            allowedOrigins:
+              - "*"
+            allowedMethods:
+              - "*"
+            allowedHeaders:
+              - "*"
+            allowCredentials: true
+
+
+---
+
+spring:
+  profiles: docker
+  cloud:
+    gateway:
+      routes:
+        - id: room
+          uri: http://room:8080
+          predicates:
+            - Path=/rooms/** 
+        - id: reservation
+          uri: http://reservation:8080
+          predicates:
+            - Path=/reservations/** 
+        - id: pay
+          uri: http://pay:8080
+          predicates:
+            - Path=/payments/** 
+        - id: Viewer
+          uri: http://Viewer:8080
+          predicates:
+            - Path= /reservationviews/**
+      globalcors:
+        corsConfigurations:
+          '[/**]':
+            allowedOrigins:
+              - "*"
+            allowedMethods:
+              - "*"
+            allowedHeaders:
+              - "*"
+            allowCredentials: true
+
+server:
+  port: 8080
+```
 
 ## CheckPoint6. Polyglot
 타 서비스와 별개로 Viewer 서비스는 SQLDB를 사용하였다. 그 외 서비스는 (h2 사용)
