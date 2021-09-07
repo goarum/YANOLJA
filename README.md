@@ -872,22 +872,39 @@ kubectl get pod
 
 
 
-## 무정지 재배포 (Readiness Probe)
-* 배포전
+## CheckPoint10. Zero-downtime deploy (Readiness Probe)
+reservation Microservice 내에 Readiness Probe를 설정, siege를 이용하여 부하를 준 후 image 버전 교체를 수행하여
+Availability를 확인한다.
 
-![image](https://user-images.githubusercontent.com/5147735/109743733-89526280-7c14-11eb-93da-0ddd3cd18e22.png)
+* 이미지 변경 전 버전 확인
 
-* 배포중
+![readness1](https://user-images.githubusercontent.com/86760528/132368587-69076c17-ddc5-46ab-a74e-1d836a64f528.PNG)
 
-![image](https://user-images.githubusercontent.com/5147735/109744076-11386c80-7c15-11eb-849d-6cf4e2c72675.png)
-![image](https://user-images.githubusercontent.com/5147735/109744186-3a58fd00-7c15-11eb-8da3-f11b6194fc6b.png)
+* 무정지 재배포를 위한 Readiness Probe 설정
 
-* 배포후
+![image](https://user-images.githubusercontent.com/86760528/132368740-0e796f48-06df-4dcf-b0e9-4a7a2c3b072f.png)
 
-![image](https://user-images.githubusercontent.com/5147735/109744225-45139200-7c15-11eb-8efa-07ac40162ded.png)
+* siege 를 이용하여 -C1의 약한 부하를 가함
+```
+siege -c1 -t180S -r100 --content-type "application/json" 'http://reservation:8080/reservations POST {"roomId":"1","price":"3000"}'
+```
+* image 버전을 변경
+```
+kubectl set image deployment reservation reservation=user0303.azurecr.io/reservation:v2
+```
+* deploy 모니터링 수행
+```
+kubectl get deploy -l app=reservation -w
+```
+![readness2](https://user-images.githubusercontent.com/86760528/132369035-41d48ae7-aead-4610-91bf-1bb59844cb23.PNG)
 
+* deploy 모니터링 수행
 
+![readness_seige](https://user-images.githubusercontent.com/86760528/132369085-51d04e45-06ca-4c42-95a5-4ba960a9b48c.PNG)
 
+* 이미지 정상 변경 확인 (describe pod)
+
+![readness3](https://user-images.githubusercontent.com/86760528/132369126-e2a48e1b-be7a-4168-ab6b-5283e4a8cb9c.PNG)
 
 ## CheckPoint11. ConfigMap/Persistence Volume
 * 시스템별로 변경 가능성이 있는 설정들을 ConfigMap을 사용하여 관리
