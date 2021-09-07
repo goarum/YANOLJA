@@ -746,68 +746,27 @@ kubectl logs {pod명}
 
 ![image](https://user-images.githubusercontent.com/5147735/109643506-a8f77580-7b97-11eb-926b-e6c922aa2d1b.png)
 
-## 서킷 브레이킹
+## CheckPoint8. Circuit Breaker
 * 서킷 브레이킹 프레임워크의 선택: Spring FeignClient + Hystrix 옵션을 사용하여 구현함
-* Order -> Pay 와의 Req/Res 연결에서 요청이 과도한 경우 CirCuit Breaker 통한 격리
-* Hystrix 를 설정: 요청처리 쓰레드에서 처리시간이 610 밀리가 넘어서기 시작하여 어느정도 유지되면 CB 회로가 닫히도록 (요청을 빠르게 실패처리, 차단) 설정
+* reservation -> Pay 와의 Req/Res 연결에서 요청이 과도한 경우 CirCuit Breaker 통한 격리
+* Hystrix 를 설정: 요청처리 쓰레드에서 처리시간이 4000 밀리가 넘어서기 시작하여 어느정도 유지되면 CB 회로가 닫히도록 (요청을 빠르게 실패처리, 차단) 설정
+* 테스트를 수행하기 위해 아래와 같이 roomId 조건을 만족 할 때에 시간지연이 되도록 하였다.
 
-```
-// Order서비스 application.yml
+* Application.yml 설정
 
-feign:
-  hystrix:
-    enabled: true
+![image](https://user-images.githubusercontent.com/86760528/132371447-2428a393-4160-4001-8bfe-57df390febb0.png)
 
-hystrix:
-  command:
-    default:
-      execution.isolation.thread.timeoutInMilliseconds: 610
-```
+* Pay Microservice 내에 시간지연 설정부분
 
+![image](https://user-images.githubusercontent.com/86760528/132371559-371a7aa7-c813-4719-8076-29c13f52e318.png)
 
-```
-// Pay 서비스 Pay.java
+* 구매요청 시 Pay_Failed 발생 화면
+  
+roomId==3 --> Pay_Failed
+![circuit](https://user-images.githubusercontent.com/86760528/132371869-af68928c-b9a1-48ac-9c9c-b3765a2e2708.PNG)
 
- @PostPersist
-    public void onPostPersist(){
-        Payed payed = new Payed();
-        BeanUtils.copyProperties(this, payed);
-        payed.setStatus("Pay");
-        payed.publishAfterCommit();
-
-        try {
-                 Thread.currentThread().sleep((long) (400 + Math.random() * 220));
-         } catch (InterruptedException e) {
-                 e.printStackTrace();
-         }
-```
-
-* /home/project/team/forthcafe/yaml/siege.yaml
-```
-apiVersion: v1
-kind: Pod
-metadata:
-  name: siege
-spec:
-  containers:
-  - name: siege
-    image: apexacme/siege-nginx
-```
-
-* siege pod 생성
-```
-/home/project/team/forthcafe/yaml/kubectl apply -f siege.yaml
-```
-
-* 부하테스터 siege 툴을 통한 서킷 브레이커 동작 확인: 동시사용자 100명 60초 동안 실시
-```
-kubectl exec -it pod/siege -c siege -- /bin/bash
-siege -c100 -t60S  -v --content-type "application/json" 'http://{EXTERNAL-IP}:8080/orders POST {"memuId":2, "quantity":1}'
-siege -c100 -t30S  -v --content-type "application/json" 'http://52.141.61.164:8080/orders POST {"memuId":2, "quantity":1}'
-```
-![image](https://user-images.githubusercontent.com/5147735/109762408-dd207400-7c33-11eb-8464-325d781867ae.png)
-![image](https://user-images.githubusercontent.com/5147735/109762376-d1cd4880-7c33-11eb-87fb-b739aa2d6621.png)
-
+roomId==4 --> Reserved
+![circuit](https://user-images.githubusercontent.com/86760528/132371898-9e7c3cfb-359e-4e3e-82af-7af1ecaa5ab0.PNG)
 
 
 ## CheckPoint9. Autoscale (HPA)
