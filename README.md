@@ -634,26 +634,6 @@ kubectl -n kafka exec -ti my-kafka-0 -- /usr/bin/kafka-console-consumer --bootst
 git clone https://github.com/bigot93/forthcafe.git
 ```
 
-## CheckPoint11. ConfigMap/Persistence Volume
-* 시스템별로 변경 가능성이 있는 설정들을 ConfigMap을 사용하여 관리
-* viewer에서 별도로 사용하는 MYSQL의 패스워드를 ConfigMap으로 처리
-
-* application.yml 파일에서 패스워드를 ConfigMap과 연결
-
-![configmap1](https://user-images.githubusercontent.com/86760528/132366832-03b613da-2176-4d9d-bcb1-9387671cbdf6.PNG)
-
-* ConfigMap 생성 및 확인
-```
-kubectl create configmap dbpass --from-literal=password=********
-kubectl get cm dbpass -o yaml
-```
-![image](https://user-images.githubusercontent.com/86760528/132367461-64b1c7f1-d065-4241-a408-76100ee64f64.png)
-
-* Deployment.yml 에 ConfigMap 적용
-
-![configmap2](https://user-images.githubusercontent.com/86760528/132367636-08518a93-dbd6-4b80-be21-c41a81c6b785.PNG)
-
-
 ## Deploy / Pipeline
 
 * build 하기
@@ -909,16 +889,34 @@ kubectl get pod
 
 
 
-## Self-healing (Liveness Probe)
-* order 서비스 deployment.yml   livenessProbe 설정을 port 8089로 변경 후 배포 하여 liveness probe 가 동작함을 확인 
-```
-    livenessProbe:
-      httpGet:
-        path: '/actuator/health'
-        port: 8089
-      initialDelaySeconds: 5
-      periodSeconds: 5
-```
+## CheckPoint11. ConfigMap/Persistence Volume
+* 시스템별로 변경 가능성이 있는 설정들을 ConfigMap을 사용하여 관리
+* viewer에서 별도로 사용하는 MYSQL의 패스워드를 ConfigMap으로 처리
 
-![image](https://user-images.githubusercontent.com/5147735/109740864-4fcb2880-7c0f-11eb-86ad-2aabb0197881.png)
-![image](https://user-images.githubusercontent.com/5147735/109742082-c0734480-7c11-11eb-9a57-f6dd6961a6d2.png)
+* application.yml 파일에서 패스워드를 ConfigMap과 연결
+
+![configmap1](https://user-images.githubusercontent.com/86760528/132366832-03b613da-2176-4d9d-bcb1-9387671cbdf6.PNG)
+
+* ConfigMap 생성 및 확인
+```
+kubectl create configmap dbpass --from-literal=password=********
+kubectl get cm dbpass -o yaml
+```
+![image](https://user-images.githubusercontent.com/86760528/132367461-64b1c7f1-d065-4241-a408-76100ee64f64.png)
+
+* Deployment.yml 에 ConfigMap 적용
+
+![configmap2](https://user-images.githubusercontent.com/86760528/132367636-08518a93-dbd6-4b80-be21-c41a81c6b785.PNG)
+
+## CheckPoint12. Self-healing (Liveness Probe)
+* Self-healing 확인을 위한 Liveness Probe 옵션 변경 (Port 변경)
+
+![liveness1](https://user-images.githubusercontent.com/86760528/132368054-68fcdfa2-9115-4aed-9d50-330cf527e1f1.PNG)
+
+* 재배포(Deploy) 후 Pod Restart 확인
+
+![liveness2](https://user-images.githubusercontent.com/86760528/132368120-3e8f0623-6ae6-45b7-abad-d9a2484dea4d.PNG)
+
+* 재배포(Deploy) 후 Pod Restart 확인
+* 
+![liveness3](https://user-images.githubusercontent.com/86760528/132368158-34a2dbe5-e822-42bb-b6e6-424dc12f347e.PNG)
