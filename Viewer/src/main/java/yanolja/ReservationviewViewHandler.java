@@ -46,15 +46,15 @@ public class ReservationviewViewHandler {
         try {
             if (!reserved.validate()) return;
                 // view 객체 조회
-            Optional<Reservationview> reservationviewOptional = reservationviewRepository.findById(reserved.getId());
+            //Optional<Reservationview> reservationviewOptional = reservationviewRepository.findById(reserved.getId());
 
-            if( reservationviewOptional.isPresent()) {
-                 Reservationview reservationview = reservationviewOptional.get();
+            //if( reservationviewOptional.isPresent()) {
+                 Reservationview reservationview = reservationviewRepository.findByRoomId(reserved.getRoomId());
             // view 객체에 이벤트의 eventDirectValue 를 set 함
                  reservationview.setState(reserved.getState());
                 // view 레파지 토리에 save
                  reservationviewRepository.save(reservationview);
-                }
+                //}
 
 
         }catch (Exception e){
@@ -66,15 +66,15 @@ public class ReservationviewViewHandler {
         try {
             if (!cancelReserved.validate()) return;
                 // view 객체 조회
-            Optional<Reservationview> reservationviewOptional = reservationviewRepository.findById(cancelReserved.getId());
+            //Optional<Reservationview> reservationviewOptional = reservationviewRepository.findByRoomId(cancelReserved.getRoomId());
 
-            if( reservationviewOptional.isPresent()) {
-                 Reservationview reservationview = reservationviewOptional.get();
+            //if( reservationviewOptional.isPresent()) {
+                 Reservationview reservationview = reservationviewRepository.findByRoomId(cancelReserved.getRoomId());
             // view 객체에 이벤트의 eventDirectValue 를 set 함
                  reservationview.setState(cancelReserved.getState());
                 // view 레파지 토리에 save
                  reservationviewRepository.save(reservationview);
-                }
+                //}
 
 
         }catch (Exception e){
@@ -86,15 +86,15 @@ public class ReservationviewViewHandler {
         try {
             if (!roomOffered.validate()) return;
                 // view 객체 조회
-            Optional<Reservationview> reservationviewOptional = reservationviewRepository.findById(roomOffered.getId());
+            //Reservationview reservationviewOptional = reservationviewRepository.findByRoomId(roomOffered.getRoomId());
 
-            if( reservationviewOptional.isPresent()) {
-                 Reservationview reservationview = reservationviewOptional.get();
+            //if( reservationviewOptional.isPresent()) {
+                 Reservationview reservationview = reservationviewRepository.findByRoomId(roomOffered.getRoomId());
             // view 객체에 이벤트의 eventDirectValue 를 set 함
                  reservationview.setState(roomOffered.getState());
                 // view 레파지 토리에 save
                  reservationviewRepository.save(reservationview);
-                }
+                //}
 
 
         }catch (Exception e){

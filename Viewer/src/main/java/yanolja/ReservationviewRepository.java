@@ -7,6 +7,6 @@ import java.util.List;
 
 public interface ReservationviewRepository extends CrudRepository<Reservationview, Long> {
 
-    //Optional<Reservationview> findById(Long Id);
+    Reservationview findByRoomId(int Id);
 
 }
