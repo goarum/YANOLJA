@@ -461,51 +461,17 @@ Materialized View를 구현하여, 타 마이크로서비스의 데이터 원본
 
 위 결과로 서로 다른 마이크로 서비스 간에 트랜잭션이 묶여 있음을 알 수 있다.
 
-# 동기식 호출 과 Fallback 처리
+## CheckPoint4. Req/Resp
+비기능적 요구사항 [고객이 예약시에 결재가 되어야 한다.] 를 만족시키기 위해
+예약 --> 결제 처리 간의 처리방식을 Req/Resp 로 구현하였으며, RestRepository를 이용하였다.
 
-분석단계에서의 조건 중 하나로 결재(Pay)와 배송(Delivery) 간의 호출은 동기식 일관성을 유지하는 트랜잭션으로 처리하기로 하였다. 호출 프로토콜은 Rest Repository에 의해 노출되어있는 REST 서비스를 FeignClient를 이용하여 호출하도록 한다.
+* reservation -> payment 신규 생성 Req/Resp 방식 호출부
 
-**Pay 서비스 내 external.DeliveryService**
-```java
-package forthcafe.external;
+![image](https://user-images.githubusercontent.com/86760528/132376430-315c6468-ba2e-4cc8-8deb-d6c2bd72db7e.png)
 
-import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
+* reservation -> PaymentService.java / RESTful 함수 FeignClient 정의부
 
-import java.util.Date;
-
-@FeignClient(name="Delivery", url="${api.url.delivery}") 
-public interface DeliveryService {
-
-    @RequestMapping(method = RequestMethod.POST, path = "/deliveries", consumes = "application/json")
-    public void delivery(@RequestBody Delivery delivery);
-
-}
-```
-
-**동작 확인**
-
-잠시 Delivery 서비스 중지
-![증빙7](https://github.com/bigot93/forthcafe/blob/main/images/%EB%8F%99%EA%B8%B0%ED%99%941.png)
-
-주문 취소 요청시 Pay 서비스 변화 없음
-![증빙8](https://github.com/bigot93/forthcafe/blob/main/images/%EB%8F%99%EA%B8%B0%ED%99%942.png)
-
-Delivery 서비스 재기동 후 주문취소
-![증빙9](https://github.com/bigot93/forthcafe/blob/main/images/%EB%8F%99%EA%B8%B0%ED%99%943.png)
-
-Pay 서비스 상태를 보면 2번 주문 정상 취소 처리됨
-![증빙9](https://github.com/bigot93/forthcafe/blob/main/images/%EB%8F%99%EA%B8%B0%ED%99%944.png)
-
-Fallback 설정
-![image](https://user-images.githubusercontent.com/5147735/109755775-f9b7ae80-7c29-11eb-8add-bdb295dc94e1.png)
-![image](https://user-images.githubusercontent.com/5147735/109755797-04724380-7c2a-11eb-8fcd-1c5135000ee5.png)
-
-
-Fallback 결과(Pay service 종료 후 Order 추가 시)
-![image](https://user-images.githubusercontent.com/5147735/109755716-dab91c80-7c29-11eb-9099-ba585115a2a6.png)
+![image](https://user-images.githubusercontent.com/86760528/132376608-4b086ca2-994c-4024-a3d1-5034705a42c0.png)
 
 ## CheckPoint5. Gateway
 API Gateway를 적용하여, MicroService의 진입점을 단일화 하였다.
