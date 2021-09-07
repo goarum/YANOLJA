@@ -639,6 +639,7 @@ git clone https://github.com/bigot93/forthcafe.git
 * viewer에서 별도로 사용하는 MYSQL의 패스워드를 ConfigMap으로 처리
 
 * application.yml 파일에서 패스워드를 ConfigMap과 연결
+
 ![configmap1](https://user-images.githubusercontent.com/86760528/132366832-03b613da-2176-4d9d-bcb1-9387671cbdf6.PNG)
 
 * ConfigMap 생성 및 확인
