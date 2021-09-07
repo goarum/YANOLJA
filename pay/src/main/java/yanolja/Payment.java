@@ -13,10 +13,20 @@ public class Payment {
     @GeneratedValue(strategy=GenerationType.AUTO)
     private Long id;
     private Integer paymentId;
+    private Integer roomId;
     private Integer price;
+
 
     @PostPersist
     public void onPostPersist(){
+    }
+
+    public Integer getRoomId() {
+        return roomId;
+    }
+
+    public void setRoomId(Integer roomId) {
+        this.roomId = roomId;
     }
 
     public Long getId() {

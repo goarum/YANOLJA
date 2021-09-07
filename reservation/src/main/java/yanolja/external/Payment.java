@@ -4,10 +4,17 @@ public class Payment {
 
     private Long id;
     private Integer paymentId;
+    private Integer roomId;
     private Integer price;
-
+    
     public Long getId() {
         return id;
+    }
+    public Integer getRoomId() {
+        return roomId;
+    }
+    public void setRoomId(Integer roomId) {
+        this.roomId = roomId;
     }
     public void setId(Long id) {
         this.id = id;

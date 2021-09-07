@@ -24,8 +24,9 @@ public class Reservation {
 
 
         yanolja.external.Payment payment = new yanolja.external.Payment();
-        payment.setId(this.id);
+        //payment.setId(this.id);
         payment.setPrice(this.price);
+        payment.setRoomId(this.roomId);
 
         try{
             ReservationApplication.applicationContext.getBean(yanolja.external.PaymentService.class)

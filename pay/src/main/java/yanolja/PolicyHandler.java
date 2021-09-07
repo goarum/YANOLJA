@@ -51,17 +51,17 @@ public class PolicyHandler{
 
             System.out.println("\n\n##### listener ReserveCheck : " + roomOffered.toJson() + "\n\n");
                 
-            Optional<Payment> paymentOptional = paymentRepository.findById(roomOffered.getId());
+            //Optional<Payment> paymentOptional = paymentRepository.findByRoomId(roomOffered.getRoomId());
 
-            if( paymentOptional.isPresent()) {
-                 Payment payment = paymentOptional.get();
-            
-                 payment.setId(roomOffered.getId());
+            //if( paymentOptional.isPresent()) {
+            //     Payment payment = paymentOptional.get();
+            Payment payment = paymentRepository.findByRoomId(roomOffered.getRoomId());
+            payment.setRoomId(roomOffered.getRoomId());
 
-                 System.out.println("**** Send To Seller "+ payment.getPrice() + "원  to Room " + payment.getId() + " ****" );
+            System.out.println("**** Send To Seller "+ payment.getPrice() + "원  to Room " + payment.getRoomId() + " ****" );
                 
-                 paymentRepository.save(payment);
-                }
+            paymentRepository.save(payment);
+            //    }
 
 
         }catch (Exception e){
