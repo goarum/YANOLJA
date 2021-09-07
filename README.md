@@ -465,6 +465,15 @@ Materialized View를 구현하여, 타 마이크로서비스의 데이터 원본
 CQRS 패턴에 따라 Command 와 Query 를 분리하여, viewer를 통해 방등록건(room)의 조회가 가능하다.
 viewer의 Content Id는 등록건의 Id 를 그대로 사용하도록 하여 등록건 별로 조회가 가능하도록 하였다.
 
+* 방등록시 viewer 항목 조회 결과 (state : empty)
+
+![image](https://user-images.githubusercontent.com/86760528/132381364-3a8979d1-dcb5-4ddf-bdc7-12f9801770be.png)
+
+* 예약시 viewer의 항목 조회 결과 (state : Reserved)
+
+![image](https://user-images.githubusercontent.com/86760528/132381407-3c0c2b5d-c013-4b3d-83d9-0608677ba216.png)
+
+
 ## CheckPoint3. Correlation
 데이터의 흐름이 방예약을 중심으로 이루어 지므로, roomId를 Correlation Key 로 사용하여 처리건을 식별하였다.
 결제 서비스 :: 구매요청 완료 후 결제 금액을 숙박업소에게 전송하는 부분. roomId로 결제건을 식별하여 처리한다.
